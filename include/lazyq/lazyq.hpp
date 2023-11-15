@@ -40,7 +40,7 @@ public:
 };
 
 template<class T>
-class lazyq_owned
+class owned
 {
 public:
   T& operator*() { return data; }
@@ -139,14 +139,15 @@ public:
       lazyq_functional_interface<MessageType>&&) = default;
   virtual ~lazyq_functional_interface() noexcept = default;
 
-  virtual bool post_message(MessageType&& data,
-                            std::function<void(MessageType&&)>& f) noexcept = 0;
+  virtual bool post_message(
+      MessageType&& data,
+      const std::function<void(MessageType&&)>& f) noexcept = 0;
 };
 
 template<class Processor,
          class MessageType,
          class Queue = queue_type<MessageType, std::mutex>>
-class lazyq_functonal
+class lazyq_functonal : public lazyq_functional_interface<MessageType >
 {
 public:
   /**
@@ -155,7 +156,7 @@ public:
    * @return true is message has been processed in this thread
    */
   bool post_message(MessageType&& data,
-                    std::function<void(MessageType&&)>& f) noexcept final
+                    const std::function<void(MessageType&&)>& f) noexcept final
   {
     unsigned expected = 0;
     if (!inflight_.compare_exchange_strong(
@@ -170,14 +171,14 @@ public:
         return false;
       }
     } else {
-      if (post_message_fast(std::move(data))) {
+      if (post_message_fast(std::move(data), f)) {
         return true;
       }
     }
 
     while (true) {
       MessageType queued_data = queue_.pop();
-      f.process_message(std::move(queued_data));
+      f(std::move(queued_data));
       if (inflight_.fetch_sub(1, std::memory_order_release) == 1) {
         break;
       }
@@ -188,10 +189,10 @@ public:
 private:
   // fast path without pushing to the queue
   // returns true if there is no work to be done
-  inline bool post_message_fast(MessageType&& data,
-                                std::function<void(MessageType&&)>& f) noexcept
+  inline bool post_message_fast(
+      MessageType&& data, const std::function<void(MessageType&&)>& f) noexcept
   {
-    f.process_message(std::move(data));
+    f(std::move(data));
     return inflight_.fetch_sub(1, std::memory_order_release) == 1;
   }
 

@@ -41,13 +41,13 @@ struct DataType
 template<class Locker = std::mutex>
 class Processor
     : public lazyq::lazyq<Processor<Locker>,
-                          lazyq::lazyq_owned<std::string_view>,
-                          lazyq::queue_type<lazyq::lazyq_owned<std::string_view>, Locker>>
+                          lazyq::owned<std::string_view>,
+                          lazyq::queue_type<lazyq::owned<std::string_view>, Locker>>
 {
 public:
   using MessageType = DataType;
 
-  void process_message(lazyq::lazyq_owned<std::string_view>&& data) noexcept final
+  void process_message(lazyq::owned<std::string_view>&& data) noexcept final
   {
     // std::cout << std::this_thread::get_id() << ": " << data.value() << "; "
     //           << data.owned_value.has_value() << "\n";
