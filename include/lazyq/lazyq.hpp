@@ -50,6 +50,8 @@ public:
   virtual ~lazyq_interface() noexcept = default;
   
   virtual void post_message(MessageType&& data) noexcept = 0;
+
+protected:
   virtual void process_message(MessageType&& data) noexcept = 0;
 };
 
