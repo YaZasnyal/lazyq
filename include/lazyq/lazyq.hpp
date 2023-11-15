@@ -38,17 +38,19 @@ public:
   bool try_lock() noexcept { return true; }
 };
 
-template<class Data>
+template<class MessageType>
 class lazyq_interface
 {
 public:
   lazyq_interface() = default;
-  lazyq_interface(const lazyq_interface<Data>&) = default;
-  lazyq_interface(lazyq_interface<Data>&&) = default;
-  lazyq_interface& operator=(const lazyq_interface<Data>&) = default;
-  lazyq_interface& operator=(lazyq_interface<Data>&&) = default;
+  lazyq_interface(const lazyq_interface<MessageType>&) = default;
+  lazyq_interface(lazyq_interface<MessageType>&&) = default;
+  lazyq_interface& operator=(const lazyq_interface<MessageType>&) = default;
+  lazyq_interface& operator=(lazyq_interface<MessageType>&&) = default;
   virtual ~lazyq_interface() noexcept = default;
-  virtual void process_message(Data&& data) noexcept = 0;
+  
+  virtual void post_message(MessageType&& data) noexcept = 0;
+  virtual void process_message(MessageType&& data) noexcept = 0;
 };
 
 template<class Processor,
@@ -57,7 +59,7 @@ template<class Processor,
 class lazyq : public lazyq_interface<MessageType>
 {
 public:
-  void post_message(MessageType&& data) noexcept
+  void post_message(MessageType&& data) noexcept final
   {
     unsigned expected = 0;
     if (!inflight_.compare_exchange_strong(
