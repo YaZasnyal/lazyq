@@ -35,14 +35,18 @@ struct DataType
   std::optional<std::string> owned_value;
 };
 
-class Processor : public lazyq::lazyq<Processor, DataType>
+class Processor 
+  : public lazyq::lazyq_functonal<DataType>
+  , public lazyq::lazyq_functonal<lazyq::owned<int>>
 {
 public:
-  void process_message(DataType&& data) noexcept final
-  {
-    std::cout << std::this_thread::get_id() << ": " << data.value() << "; "
-              << data.owned_value.has_value() << "\n";
-  }
+  using lazyq::lazyq_functonal<DataType>::post_message;
+  using lazyq::lazyq_functonal<lazyq::owned<int>>::post_message;
+  // void process_message(DataType&& data) noexcept final
+  // {
+  //   std::cout << std::this_thread::get_id() << ": " << data.value() << "; "
+  //             << data.owned_value.has_value() << "\n";
+  // }
 };
 
 auto main() -> int
@@ -53,13 +57,17 @@ auto main() -> int
       [&]()
       {
         for (int i = 0; i < 10; ++i) {
-          q.post_message({"Hello world from another thread"});
+          q.post_message(DataType{"Hello world from another thread"}, [&](DataType&& d){
+            std::cout << std::this_thread::get_id() << ": " << d.value() << "\n";
+          });
           std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
       });
 
   for (int i = 0; i < 10; ++i) {
-    q.post_message({"Hello world from main thread"});
+    q.post_message(lazyq::owned<int>{5}, [&](lazyq::owned<int>&& v){
+      std::cout << std::this_thread::get_id() << ": " << v.data << "\n";
+    });
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 

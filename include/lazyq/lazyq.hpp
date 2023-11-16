@@ -144,8 +144,7 @@ public:
       const std::function<void(MessageType&&)>& f) noexcept = 0;
 };
 
-template<class Processor,
-         class MessageType,
+template<class MessageType,
          class Queue = queue_type<MessageType, std::mutex>>
 class lazyq_functonal : public lazyq_functional_interface<MessageType >
 {
